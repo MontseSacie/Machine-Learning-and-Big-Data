@@ -10,6 +10,9 @@ from sklearn import decomposition
 def loadMatrix(file):
 	return np.loadtxt(file)
 
+def saveMatrix(file, X):
+	return np.savetxt(file, X)
+
 def sigmoide(z):
 	return 1 / (1 + np.exp(-1*z))
 
@@ -110,11 +113,11 @@ def bestRegresion(theta1, theta2, num_entradas, num_ocultas, num_etiquetas, X, y
 	for i in regs:
 		gradiente = parametros(params, num_entradas, num_ocultas, num_etiquetas, X, y, i)
 		e = evaluacion(gradiente, X, y, num_entradas, num_ocultas, num_etiquetas)
-		sol += [i, e]
+		sol += [(i, e)]
 	return sol
 
 def test():
-	reg = 8
+	reg = 3.5
 	X = loadMatrix('arcene_train.data')
 
 	pca = decomposition.PCA(n_components=100)
@@ -126,13 +129,20 @@ def test():
 	num_entradas = X.shape[1]
 	num_ocultas = 1000
 	num_etiquetas = 1
-	theta1 = pesosAleatorios(num_ocultas, X.shape[1])
-	theta2 = pesosAleatorios(num_etiquetas, num_ocultas)
 
-	print bestRegresion(theta1, theta2, num_entradas, num_ocultas, num_etiquetas, X, y, 3.0, 5.0, 5)
-	#theta1, theta2 = weights[ 'Theta1' ], weights[ 'Theta2' ]
+	#theta1 = pesosAleatorios(num_ocultas, X.shape[1])
+	#theta2 = pesosAleatorios(num_etiquetas, num_ocultas)
+	theta1 = loadMatrix('theta1.out')
+	theta2 = loadMatrix('theta2.out')
+
+	#saveMatrix('theta1.out', theta1)
+	#saveMatrix('theta2.out', theta2)
+
+	#print bestRegresion(theta1, theta2, num_entradas, num_ocultas, num_etiquetas, X, y, 3.0, 5.0, 5)
+	
 	#coste, gradiente = backprop(np.concatenate((np.ravel(theta1), np.ravel(theta2))), num_entradas, num_ocultas, num_etiquetas, X, y, reg)
-
+	gradiente = parametros(np.concatenate((np.ravel(theta1), np.ravel(theta2))), num_entradas, num_ocultas, num_etiquetas, X, y, reg)
+	print evaluacion(gradiente, X, y, num_entradas, num_ocultas, num_etiquetas)
 	#cvX = loadMatrix('arcene_valid.data')
 	#cvY = loadMatrix('arcene_valid.labels').astype(int)
 	#pca.fit(cvX)
