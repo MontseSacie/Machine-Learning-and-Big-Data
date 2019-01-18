@@ -6,6 +6,7 @@ import scipy.optimize as opt
 from scipy.io import loadmat
 from sklearn import decomposition
 #import pdb; pdb.set_trace()
+from sklearn import preprocessing
 
 def loadMatrix(file):
 	return np.loadtxt(file)
@@ -61,10 +62,9 @@ def backprop(params_rn, num_entradas, num_ocultas , num_etiquetas , X, y, reg):
 	D1 = (delta1[1:,:]/float(m) + theta1*reg/float(m)).ravel()
 	D2 = (delta2/float(m) + theta2*reg/float(m)).ravel()
 	gradient = np.r_[D1, D2]
-	print J_regulated
 	return J_regulated, gradient
 
-def forwards(params, X, num_entradas, num_ocultas, num_etiquetas):
+def coste(params, X, num_entradas, num_ocultas, num_etiquetas):
 	theta1 = np.reshape(params[:num_ocultas*(num_entradas + 1)], (num_ocultas, (num_entradas + 1)))
 	theta2 = np.reshape(params[num_ocultas*(num_entradas + 1):], (num_etiquetas, (num_ocultas + 1)))
 	m = len(X)
@@ -89,12 +89,12 @@ def parametros(params, input_size, hidden_size, num_labels, X, y, reg):
 	return result.x
 
 def evaluacion(params, X, Y, num_entradas, num_ocultas, num_etiquetas):
-	h = forwards(params,X,num_entradas,num_ocultas,num_etiquetas)
+	h = coste(params,X,num_entradas,num_ocultas,num_etiquetas)
 	z = (np.ravel(h) >= 0.5)
 	Y = (np.ravel(Y) + 1)/2
+	print z, h, Y
 	z = map((lambda x,y: x == y), z, Y)
-	print Y
-	print z
+	print np.array(list(zip(z, Y))), sum(Y)
 	return np.ravel(sum(z)/float(len(z))*100)[0]
 
 def crossValidation(params, num_entradas, num_ocultas, num_etiquetas):
@@ -102,7 +102,7 @@ def crossValidation(params, num_entradas, num_ocultas, num_etiquetas):
 	pca = decomposition.PCA(n_components=100)
 	pca.fit(X)
 	#X = pca.transform(X)
-	h = forwards(params, X, num_entradas, num_ocultas, num_etiquetas)
+	h = coste(params, X, num_entradas, num_ocultas, num_etiquetas)
 	z = (np.ravel(h) >= 0.5)
 	return np.ravel(sum(z)/float(len(z))*100)[0]
 
@@ -116,8 +116,10 @@ def bestRegresion(theta1, theta2, num_entradas, num_ocultas, num_etiquetas, X, y
 		sol += [(i, e)]
 	return sol
 
+#def bestHiddenNodes()
+
 def test():
-	reg = 3.5
+	reg = 10
 	X = loadMatrix('arcene_train.data')
 
 	pca = decomposition.PCA(n_components=100)
@@ -127,27 +129,36 @@ def test():
 	y = loadMatrix('arcene_train.labels')
 	y = y.astype(int)
 	num_entradas = X.shape[1]
-	num_ocultas = 1000
+	num_ocultas = 350
 	num_etiquetas = 1
 
-	#theta1 = pesosAleatorios(num_ocultas, X.shape[1])
-	#theta2 = pesosAleatorios(num_etiquetas, num_ocultas)
-	theta1 = loadMatrix('theta1.out')
-	theta2 = loadMatrix('theta2.out')
-
+	theta1 = pesosAleatorios(num_ocultas, X.shape[1])
+	theta2 = pesosAleatorios(num_etiquetas, num_ocultas)
 	#saveMatrix('theta1.out', theta1)
 	#saveMatrix('theta2.out', theta2)
 
-	#print bestRegresion(theta1, theta2, num_entradas, num_ocultas, num_etiquetas, X, y, 3.0, 5.0, 5)
+	#theta1 = loadMatrix('theta1.out')
+	#theta2 = loadMatrix('theta2.out')
+	cvX = loadMatrix('arcene_valid.data')
+	cvY = loadMatrix('arcene_valid.labels').astype(int)
+	pca.fit(cvX)
+	#cvX = pca.transform(cvX)
+
+	#print bestRegresion(theta1, theta2, num_entradas, num_ocultas, num_etiquetas, X, y, 20, 40.0, 3)
 	
 	#coste, gradiente = backprop(np.concatenate((np.ravel(theta1), np.ravel(theta2))), num_entradas, num_ocultas, num_etiquetas, X, y, reg)
-	gradiente = parametros(np.concatenate((np.ravel(theta1), np.ravel(theta2))), num_entradas, num_ocultas, num_etiquetas, X, y, reg)
-	print evaluacion(gradiente, X, y, num_entradas, num_ocultas, num_etiquetas)
-	#cvX = loadMatrix('arcene_valid.data')
-	#cvY = loadMatrix('arcene_valid.labels').astype(int)
-	#pca.fit(cvX)
-	#cvX = pca.transform(cvX)
-	#print evaluacion(gradiente, cvX, cvY, num_entradas, num_ocultas, num_etiquetas)
+
+	pesos = np.concatenate((np.ravel(theta1), np.ravel(theta2)))
+	for i in range(1, len(X)/2):
+		print i
+		pesos = parametros(pesos, num_entradas, num_ocultas, num_etiquetas, X[0:i*2], y[0:i*2], reg)
+		Jt = backprop(pesos, num_entradas, num_ocultas, num_etiquetas, X[0:i*2], y[0:i*2], reg)[0]
+		Jcv = backprop(pesos, num_entradas, num_ocultas, num_etiquetas, cvX[0:i*2], cvY[0:i*2], reg)[0]
+		print Jt, Jcv, Jt - Jcv
+	
+	print evaluacion(pesos, X, y, num_entradas, num_ocultas, num_etiquetas)
+	print evaluacion(pesos, cvX, cvY, num_entradas, num_ocultas, num_etiquetas)
+	saveMatrix('weights.out', pesos)
 	
 
 test()
