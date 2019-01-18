@@ -1,0 +1,10 @@
+1 ¿los resultados de los ejemplos de entrenamiento text no los tenemos nosotros para comprobar si nuestro programa funciona?
+2 ¿En la red neuronal solo comprobamos cual es el numero de nodos optimos de la capa oculta probando y viendo errores? o debemos implementar algún algoritmo?
+
+
+------
+1 Quitar atributos innecesarios - 7000
+2 Detectar anomalias con validacion -> calcular E
+3 probar ejemplos de entrenamiento con diferentes configuraciones
+4 hacer test
+
