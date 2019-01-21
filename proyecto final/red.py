@@ -1,4 +1,4 @@
-import matplotlib.pyplot as pl
+import matplotlib.pyplot as plt
 import numpy as np
 from pandas.io.parsers import read_csv
 import scipy.optimize as opt
@@ -97,14 +97,13 @@ def evaluacion(params, X, Y, num_entradas, num_ocultas, num_etiquetas):
 	print np.array(list(zip(z, Y))), sum(Y)
 	return np.ravel(sum(z)/float(len(z))*100)[0]
 
-def crossValidation(params, num_entradas, num_ocultas, num_etiquetas):
-	X = loadMatrix('arcene_valid.data')
+def crossValidation(params, X, num_entradas, num_ocultas, num_etiquetas):
 	pca = decomposition.PCA(n_components=100)
 	pca.fit(X)
 	#X = pca.transform(X)
 	h = coste(params, X, num_entradas, num_ocultas, num_etiquetas)
 	z = (np.ravel(h) >= 0.5)
-	return np.ravel(sum(z)/float(len(z))*100)[0]
+	return sum(z)
 
 def bestRegresion(theta1, theta2, num_entradas, num_ocultas, num_etiquetas, X, y, bound_left, bound_right, iterations):
 	regs = np.linspace(bound_left, bound_right, num=iterations)
@@ -116,7 +115,25 @@ def bestRegresion(theta1, theta2, num_entradas, num_ocultas, num_etiquetas, X, y
 		sol += [(i, e)]
 	return sol
 
-#def bestHiddenNodes()
+def curvasAprendizaje(errorT, errorVal, reg, num_ocultas, iterations):
+	plt.figure()
+	plt.xlabel('Numero de ejemplos de entrenamiento')
+	plt.ylabel('Error')
+	plt.title("$lambda$ = " + reg + ", nodos ocultos = " + num_ocultas)
+	plt.plot(np.array(range(len(errorT)))*iterations, errorT, '-', color='blue', label='Entreno')
+	plt.plot(np.array(range(len(errorVal)))*iterations, errorVal, '-', color='orange', label='Validacion cruzada')
+	plt.legend()
+	plt.savefig('curva_aprendizaje_' + reg + '_' + num_ocultas + '_' + str(iterations) + '.png')
+
+def train(X, y, cvX, cvY, pesos, num_entradas, num_ocultas, num_etiquetas, iterations, reg):
+	Jts = []
+	Jcvs = []
+	for i in range(1, len(X)/iterations):
+		print i
+		pesos = parametros(pesos, num_entradas, num_ocultas, num_etiquetas, X[0:i*iterations], y[0:i*iterations], reg)
+		Jts += [backprop(pesos, num_entradas, num_ocultas, num_etiquetas, X[0:i*iterations], y[0:i*iterations], reg)[0]]
+		Jcvs += [backprop(pesos, num_entradas, num_ocultas, num_etiquetas, cvX[0:i*iterations], cvY[0:i*iterations], reg)[0]]
+	curvasAprendizaje(Jts, Jcvs, str(reg), str(num_ocultas), iterations)
 
 def test():
 	reg = 10
@@ -129,8 +146,9 @@ def test():
 	y = loadMatrix('arcene_train.labels')
 	y = y.astype(int)
 	num_entradas = X.shape[1]
-	num_ocultas = 350
+	num_ocultas = 200
 	num_etiquetas = 1
+	iterations = 2
 
 	theta1 = pesosAleatorios(num_ocultas, X.shape[1])
 	theta2 = pesosAleatorios(num_etiquetas, num_ocultas)
@@ -148,17 +166,14 @@ def test():
 	
 	#coste, gradiente = backprop(np.concatenate((np.ravel(theta1), np.ravel(theta2))), num_entradas, num_ocultas, num_etiquetas, X, y, reg)
 
+	#pesos = loadMatrix('weights.out')
 	pesos = np.concatenate((np.ravel(theta1), np.ravel(theta2)))
-	for i in range(1, len(X)/2):
-		print i
-		pesos = parametros(pesos, num_entradas, num_ocultas, num_etiquetas, X[0:i*2], y[0:i*2], reg)
-		Jt = backprop(pesos, num_entradas, num_ocultas, num_etiquetas, X[0:i*2], y[0:i*2], reg)[0]
-		Jcv = backprop(pesos, num_entradas, num_ocultas, num_etiquetas, cvX[0:i*2], cvY[0:i*2], reg)[0]
-		print Jt, Jcv, Jt - Jcv
-	
-	print evaluacion(pesos, X, y, num_entradas, num_ocultas, num_etiquetas)
-	print evaluacion(pesos, cvX, cvY, num_entradas, num_ocultas, num_etiquetas)
-	saveMatrix('weights.out', pesos)
+	train(X, y, cvX, cvY, pesos, num_entradas, num_ocultas, num_etiquetas, iterations, reg)
+	#print evaluacion(pesos, X, y, num_entradas, num_ocultas, num_etiquetas)
+	#print evaluacion(pesos, cvX, cvY, num_entradas, num_ocultas, num_etiquetas)
+	#tX = loadMatrix('arcene_test.data')
+	#print crossValidation(pesos, tX, num_entradas, num_ocultas, num_etiquetas)
+	#saveMatrix('weights.out', pesos)
 	
 
 test()
